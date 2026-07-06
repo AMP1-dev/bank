@@ -105,7 +105,8 @@ function CadastroScreen({ onVoltar, onSuccess }) {
         .eq('id', authData.user.id);
 
     } catch (e) {
-      setErro(e.message || 'Erro ao criar conta.');
+      console.error(e);
+      setErro(e?.message || (typeof e === 'object' ? JSON.stringify(e) : 'Erro ao criar conta.'));
     }
     setLoading(false);
   }

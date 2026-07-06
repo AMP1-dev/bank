@@ -93,6 +93,8 @@ CREATE POLICY "profile_update" ON profiles FOR UPDATE USING (auth.uid() = id);
 -- Empresas
 CREATE POLICY "empresa_select" ON empresas FOR SELECT
   USING (id IN (SELECT empresa_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "empresa_insert" ON empresas FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Cheques
 CREATE POLICY "cheque_select" ON cheques FOR SELECT
