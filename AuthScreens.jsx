@@ -8,7 +8,7 @@ function Logo() {
       <div style={{ width: 64, height: 64, background: C.navy, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', boxShadow: '0 8px 24px rgba(15,45,72,0.25)' }}>
         <span style={{ fontSize: 28 }}>🏦</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: C.navy, letterSpacing: '-0.5px' }}>CheqControl</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: C.navy, letterSpacing: '-0.5px' }}>BANK</div>
       <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Gestão de Cheques</div>
     </div>
   );

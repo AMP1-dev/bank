@@ -43,7 +43,7 @@ export function DashboardScreen({ cheques, onNavigate }) {
     <div style={{ padding: '16px 16px 100px' }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>CheqControl</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>BANK</div>
         <div style={{ fontSize: 13, color: C.muted }}>Visão geral dos cheques</div>
       </div>
 
