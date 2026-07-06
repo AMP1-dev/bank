@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase.js';
-import { calcularStatus } from './utils/constants.js';
-import { LoginScreen }       from './screens/AuthScreens.jsx';
-import { DashboardScreen }   from './screens/DashboardScreen.jsx';
-import { ChequesScreen }     from './screens/ChequesScreen.jsx';
-import { ChequeFormScreen }  from './screens/ChequeFormScreen.jsx';
-import { HistoricoScreen }   from './screens/HistoricoScreen.jsx';
-import { AdminScreen }       from './screens/AdminScreen.jsx';
-import { BottomNav }         from './components/Navigation.jsx';
-import { Spinner }           from './components/UIComponents.jsx';
+import { supabase } from './supabase.js';
+import { calcularStatus } from './constants.js';
+import { LoginScreen }       from './AuthScreens.jsx';
+import { DashboardScreen }   from './DashboardScreen.jsx';
+import { ChequesScreen }     from './ChequesScreen.jsx';
+import { ChequeFormScreen }  from './ChequeFormScreen.jsx';
+import { HistoricoScreen }   from './HistoricoScreen.jsx';
+import { AdminScreen }       from './AdminScreen.jsx';
+import { BottomNav }         from './Navigation.jsx';
+import { Spinner }           from './UIComponents.jsx';
 
 export default function App() {
   const [sessao,  setSessao]  = useState(null);  // { id, email, nome, tipo, empresaId }

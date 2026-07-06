@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Scan, ChevronLeft, Save } from 'lucide-react';
-import { C, FieldLabel, inputStyle, selectStyle, Btn, Alert, Modal } from '../components/UIComponents.jsx';
-import { parseCMC7 } from '../utils/cmc7.js';
-import { BANCOS_LISTA } from '../utils/constants.js';
+import { C, FieldLabel, inputStyle, selectStyle, Btn, Alert, Modal } from './UIComponents.jsx';
+import { parseCMC7 } from './cmc7.js';
+import { BANCOS_LISTA } from './constants.js';
 
 export function ChequeFormScreen({ cheque, onSalvar, onVoltar, nomeUsuario }) {
   const editando = !!cheque;

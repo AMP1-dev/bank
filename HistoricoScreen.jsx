@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase.js';
-import { C, Spinner, EmptyState } from '../components/UIComponents.jsx';
-import { formatDate } from '../utils/formatters.js';
+import { supabase } from './supabase.js';
+import { C, Spinner, EmptyState } from './UIComponents.jsx';
+import { formatDate } from './formatters.js';
 
 const ACAO_MAP = {
   criado:          { label: 'Lançado',          color: C.green,  bg: C.greenLt,  icon: '➕' },

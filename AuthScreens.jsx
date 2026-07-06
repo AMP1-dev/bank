@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase.js';
-import { C, Btn, FieldLabel, inputStyle, Alert } from '../components/UIComponents.jsx';
+import { supabase } from './supabase.js';
+import { C, Btn, FieldLabel, inputStyle, Alert } from './UIComponents.jsx';
 
 function Logo() {
   return (

@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, ChevronRight, Check, RotateCcw, Trash2 } from 'lucide-react';
-import { C, StatusBadge, EmptyState, Modal, Btn, FieldLabel, selectStyle, Alert } from '../components/UIComponents.jsx';
-import { calcularStatus } from '../utils/constants.js';
-import { formatBRL, formatDate, formatCPFCNPJ } from '../utils/formatters.js';
+import { C, StatusBadge, EmptyState, Modal, Btn, FieldLabel, selectStyle, Alert } from './UIComponents.jsx';
+import { calcularStatus } from './constants.js';
+import { formatBRL, formatDate, formatCPFCNPJ } from './formatters.js';
 
 export function ChequesScreen({ cheques, onEditar, onAlterarStatus, onExcluir }) {
   const [busca, setBusca]             = useState('');

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LogOut, Building2, User, Shield } from 'lucide-react';
-import { supabase } from '../lib/supabase.js';
-import { C, Card, Btn, FieldLabel, inputStyle, Alert } from '../components/UIComponents.jsx';
+import { supabase } from './supabase.js';
+import { C, Card, Btn, FieldLabel, inputStyle, Alert } from './UIComponents.jsx';
 
 export function AdminScreen({ sessao, empresa, onLogout }) {
   const [abaAtiva, setAbaAtiva] = useState('empresa');

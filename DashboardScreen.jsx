@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { C, Card, StatusBadge } from '../components/UIComponents.jsx';
-import { calcularStatus } from '../utils/constants.js';
-import { formatBRL, formatDate, diasParaVencer } from '../utils/formatters.js';
+import { C, Card, StatusBadge } from './UIComponents.jsx';
+import { calcularStatus } from './constants.js';
+import { formatBRL, formatDate, diasParaVencer } from './formatters.js';
 
 function MetricCard({ label, valor, quantidade, color, bg, Icon }) {
   return (
