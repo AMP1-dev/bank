@@ -9,6 +9,10 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
   const [cnpj, setCnpj] = useState(empresa?.cnpj || '');
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState('');
+  
+  // Estados para a aba Global (admin_sistema)
+  const [clientes, setClientes] = useState([]);
+  const [carregandoClientes, setCarregandoClientes] = useState(false);
 
   async function salvarEmpresa() {
     setSalvando(true); setMsg('');
@@ -24,10 +28,27 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
     setMsg(error ? '❌ Erro ao enviar e-mail.' : '✅ Link de redefinição enviado para ' + sessao.email);
   }
 
+  async function carregarClientesGlobais() {
+    setCarregandoClientes(true);
+    const { data: empresasDB, error } = await supabase.from('empresas').select('*').order('created_at', { ascending: false });
+    if (!error && empresasDB) setClientes(empresasDB);
+    setCarregandoClientes(false);
+  }
+
+  React.useEffect(() => {
+    if (abaAtiva === 'clientes' && sessao?.tipo === 'admin_sistema') {
+      carregarClientesGlobais();
+    }
+  }, [abaAtiva, sessao]);
+
   const abas = [
     { id: 'empresa', label: 'Empresa',  Icon: Building2 },
     { id: 'conta',   label: 'Conta',    Icon: User },
   ];
+
+  if (sessao?.tipo === 'admin_sistema') {
+    abas.push({ id: 'clientes', label: 'Clientes Globais', Icon: Shield });
+  }
 
   return (
     <div style={{ padding: '16px 16px 100px' }}>
@@ -102,6 +123,33 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
           <Btn variant="danger" onClick={onLogout} style={{ width: '100%' }}>
             <LogOut size={16} /> Sair da conta
           </Btn>
+        </div>
+      )}
+
+      {abaAtiva === 'clientes' && sessao?.tipo === 'admin_sistema' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {carregandoClientes ? (
+            <div style={{ textAlign: 'center', padding: 20, color: C.muted }}>Carregando empresas...</div>
+          ) : clientes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 20, color: C.muted }}>Nenhuma empresa cadastrada.</div>
+          ) : (
+            clientes.map(cli => (
+              <div key={cli.id} style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 44, height: 44, background: C.navy, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Building2 size={20} color="#fff" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{cli.nome}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>CNPJ: {cli.cnpj || 'Não informado'}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, fontSize: 11, color: C.muted }}>
+                  Cadastrado em: {new Date(cli.created_at).toLocaleDateString('pt-BR')}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

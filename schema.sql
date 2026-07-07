@@ -86,15 +86,28 @@ ALTER TABLE profiles          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cheques           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE historico_cheques ENABLE ROW LEVEL SECURITY;
 
+-- Função auxiliar para checar se é Super Admin sem causar recursão infinita
+CREATE OR REPLACE FUNCTION is_admin_sistema()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() AND tipo = 'admin_sistema'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Profiles
-CREATE POLICY "profile_select" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profile_update" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "profile_select" ON profiles FOR SELECT USING (auth.uid() = id OR is_admin_sistema());
+CREATE POLICY "profile_update" ON profiles FOR UPDATE USING (auth.uid() = id OR is_admin_sistema());
 
 -- Empresas
 CREATE POLICY "empresa_select" ON empresas FOR SELECT
-  USING (id IN (SELECT empresa_id FROM profiles WHERE id = auth.uid()));
+  USING (id IN (SELECT empresa_id FROM profiles WHERE id = auth.uid()) OR is_admin_sistema());
 CREATE POLICY "empresa_insert" ON empresas FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "empresa_update" ON empresas FOR UPDATE
+  USING (id IN (SELECT empresa_id FROM profiles WHERE id = auth.uid()) OR is_admin_sistema());
 
 -- Cheques
 CREATE POLICY "cheque_select" ON cheques FOR SELECT
@@ -113,14 +126,14 @@ CREATE POLICY "historico_insert" ON historico_cheques FOR INSERT
   WITH CHECK (empresa_id IN (SELECT empresa_id FROM profiles WHERE id = auth.uid()));
 
 -- ── Trigger: cria profile ao registrar usuário ────────────────
-CREATE OR REPLACE FUNCTION handle_new_user()
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, nome)
-  VALUES (new.id, new.raw_user_meta_data->>'nome');
+  INSERT INTO public.profiles (id, nome)
+  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'nome', 'Usuário Convidado'));
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
