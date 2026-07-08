@@ -95,14 +95,21 @@ function CadastroScreen({ onVoltar, onSuccess }) {
       });
       if (authErr) throw authErr;
 
+      // 1.5. Forçar o login para garantir que temos o auth.uid() liberado no banco
+      if (!authData.session) {
+        const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password: senha });
+        if (loginErr) throw new Error('Falha ao autenticar após criar conta: ' + loginErr.message);
+      }
+
       // 2. Criar empresa
       const { data: emp, error: empErr } = await supabase.from('empresas')
         .insert({ nome: empresa, cnpj: cnpj || null }).select().single();
-      if (empErr) throw empErr;
+      if (empErr) throw new Error('Erro ao criar empresa: ' + empErr.message);
 
-      // 3. Vincular profile à empresa
-      await supabase.from('profiles').update({ empresa_id: emp.id, nome, tipo: 'admin' })
+      // 3. Vincular profile à empresa e setar como admin
+      const { error: profErr } = await supabase.from('profiles').update({ empresa_id: emp.id, nome, tipo: 'admin' })
         .eq('id', authData.user.id);
+      if (profErr) throw new Error('Erro ao vincular perfil: ' + profErr.message);
 
     } catch (e) {
       console.error(e);
