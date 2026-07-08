@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, Building2, User, Shield } from 'lucide-react';
+import { LogOut, Building2, User, Shield, Users, Copy } from 'lucide-react';
 import { supabase } from './supabase.js';
 import { C, Card, Btn, FieldLabel, inputStyle, Alert } from './UIComponents.jsx';
 
@@ -15,6 +15,10 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
   const [carregandoClientes, setCarregandoClientes] = useState(false);
   const [clienteEditando, setClienteEditando] = useState(null);
   const [clienteForm, setClienteForm] = useState({});
+
+  // Estados para a aba Equipe
+  const [equipe, setEquipe] = useState([]);
+  const [carregandoEquipe, setCarregandoEquipe] = useState(false);
 
   async function salvarEmpresa() {
     setSalvando(true); setMsg('');
@@ -60,12 +64,33 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
     if (abaAtiva === 'clientes' && sessao?.tipo === 'admin_sistema') {
       carregarClientesGlobais();
     }
-  }, [abaAtiva, sessao]);
+    if (abaAtiva === 'equipe' && empresa?.id) {
+      carregarEquipe();
+    }
+  }, [abaAtiva, sessao, empresa]);
 
-  const abas = [
-    { id: 'empresa', label: 'Empresa',  Icon: Building2 },
-    { id: 'conta',   label: 'Conta',    Icon: User },
-  ];
+  async function carregarEquipe() {
+    setCarregandoEquipe(true);
+    const { data } = await supabase.from('profiles').select('*').eq('empresa_id', empresa.id).order('created_at', { ascending: true });
+    if (data) setEquipe(data);
+    setCarregandoEquipe(false);
+  }
+
+  function copiarLinkConvite() {
+    const link = `${window.location.origin}/?invite=${empresa.id}`;
+    navigator.clipboard.writeText(link);
+    setMsg('✅ Link de convite copiado para a área de transferência!');
+    setTimeout(() => setMsg(''), 3000);
+  }
+
+  const isAdmin = sessao?.tipo === 'admin' || sessao?.tipo === 'admin_sistema';
+
+  const abas = [];
+  if (isAdmin) {
+    abas.push({ id: 'empresa', label: 'Empresa',  Icon: Building2 });
+    abas.push({ id: 'equipe',  label: 'Equipe',   Icon: Users });
+  }
+  abas.push({ id: 'conta',   label: 'Conta',    Icon: User });
 
   if (sessao?.tipo === 'admin_sistema') {
     abas.push({ id: 'clientes', label: 'Clientes Globais', Icon: Shield });
@@ -115,6 +140,37 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
           <Btn onClick={salvarEmpresa} disabled={salvando} style={{ width: '100%', marginTop: 16 }}>
             {salvando ? 'Salvando...' : 'Salvar dados da empresa'}
           </Btn>
+        </div>
+      )}
+
+      {abaAtiva === 'equipe' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Convide novos membros</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              Envie o link de convite para que novos funcionários se cadastrem automaticamente na sua empresa como operadores.
+            </div>
+            <Btn onClick={copiarLinkConvite} style={{ width: '100%', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+              <Copy size={16} /> Copiar Link de Convite
+            </Btn>
+          </div>
+
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginTop: 8, marginBottom: 4 }}>Membros Atuais</div>
+          {carregandoEquipe ? (
+            <div style={{ textAlign: 'center', padding: 20, color: C.muted }}>Carregando equipe...</div>
+          ) : (
+            equipe.map(membro => (
+              <div key={membro.id} style={{ background: '#fff', borderRadius: 12, padding: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, background: membro.tipo === 'admin' ? C.navy : C.tealLt, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <User size={18} color={membro.tipo === 'admin' ? '#fff' : C.teal} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{membro.nome || 'Sem nome'}</div>
+                  <div style={{ fontSize: 12, color: C.muted, textTransform: 'capitalize' }}>{membro.tipo}</div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 

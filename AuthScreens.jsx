@@ -77,6 +77,10 @@ export function LoginScreen({ onSuccess }) {
 }
 
 function CadastroScreen({ onVoltar, onSuccess }) {
+  // Ler convite da URL (ex: ?invite=1234-abcd)
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteId = urlParams.get('invite');
+
   const [step, setStep]       = useState(1); // 1=dados, 2=empresa
   const [nome, setNome]       = useState('');
   const [email, setEmail]     = useState('');
@@ -101,15 +105,22 @@ function CadastroScreen({ onVoltar, onSuccess }) {
         if (loginErr) throw new Error('Falha ao autenticar após criar conta: ' + loginErr.message);
       }
 
-      // 2. Criar empresa
-      const { data: emp, error: empErr } = await supabase.from('empresas')
-        .insert({ nome: empresa, cnpj: cnpj || null }).select().single();
-      if (empErr) throw new Error('Erro ao criar empresa: ' + empErr.message);
+      if (inviteId) {
+        // Se tem convite, não cria empresa, apenas vincula como operador
+        const { error: profErr } = await supabase.from('profiles').update({ empresa_id: inviteId, nome, tipo: 'operador' })
+          .eq('id', authData.user.id);
+        if (profErr) throw new Error('Erro ao aceitar convite: ' + profErr.message);
+      } else {
+        // 2. Criar empresa (se não for convite)
+        const { data: emp, error: empErr } = await supabase.from('empresas')
+          .insert({ nome: empresa, cnpj: cnpj || null }).select().single();
+        if (empErr) throw new Error('Erro ao criar empresa: ' + empErr.message);
 
-      // 3. Vincular profile à empresa e setar como admin
-      const { error: profErr } = await supabase.from('profiles').update({ empresa_id: emp.id, nome, tipo: 'admin' })
-        .eq('id', authData.user.id);
-      if (profErr) throw new Error('Erro ao vincular perfil: ' + profErr.message);
+        // 3. Vincular profile à empresa e setar como admin
+        const { error: profErr } = await supabase.from('profiles').update({ empresa_id: emp.id, nome, tipo: 'admin' })
+          .eq('id', authData.user.id);
+        if (profErr) throw new Error('Erro ao vincular perfil: ' + profErr.message);
+      }
 
     } catch (e) {
       console.error(e);
@@ -136,8 +147,16 @@ function CadastroScreen({ onVoltar, onSuccess }) {
             <FieldLabel>Senha (mín. 8 caracteres)</FieldLabel>
             <input value={senha} onChange={e => setSenha(e.target.value)} type="password" placeholder="••••••••" style={inputStyle} />
             {erro && <div style={{ marginTop: 10, fontSize: 13, color: C.red }}>{erro}</div>}
-            <Btn onClick={() => { if (!nome || !email || senha.length < 8) { setErro('Preencha todos os campos.'); return; } setErro(''); setStep(2); }} style={{ width: '100%', marginTop: 20 }}>
-              Próximo →
+            <Btn onClick={() => { 
+              if (!nome || !email || senha.length < 8) { setErro('Preencha todos os campos.'); return; } 
+              setErro(''); 
+              if (inviteId) {
+                handleCadastro(); // Se tem convite, cadastra direto
+              } else {
+                setStep(2); // Vai para passo de empresa
+              }
+            }} disabled={loading} style={{ width: '100%', marginTop: 20 }}>
+              {inviteId ? (loading ? 'Criando...' : 'Aceitar Convite e Entrar') : 'Próximo →'}
             </Btn>
           </>
         )}
