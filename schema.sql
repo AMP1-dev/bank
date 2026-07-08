@@ -4,10 +4,13 @@
 
 -- Empresas
 CREATE TABLE IF NOT EXISTS empresas (
-  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  nome        TEXT NOT NULL,
-  cnpj        TEXT,
-  created_at  TIMESTAMPTZ DEFAULT now()
+  id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome             TEXT NOT NULL,
+  cnpj             TEXT,
+  ativo            BOOLEAN DEFAULT true,
+  plano_valor      NUMERIC(10,2) DEFAULT 0.00,
+  plano_vencimento DATE,
+  created_at       TIMESTAMPTZ DEFAULT now()
 );
 
 -- Profiles (estende auth.users)

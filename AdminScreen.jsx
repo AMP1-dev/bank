@@ -13,6 +13,8 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
   // Estados para a aba Global (admin_sistema)
   const [clientes, setClientes] = useState([]);
   const [carregandoClientes, setCarregandoClientes] = useState(false);
+  const [clienteEditando, setClienteEditando] = useState(null);
+  const [clienteForm, setClienteForm] = useState({});
 
   async function salvarEmpresa() {
     setSalvando(true); setMsg('');
@@ -33,6 +35,25 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
     const { data: empresasDB, error } = await supabase.from('empresas').select('*').order('created_at', { ascending: false });
     if (!error && empresasDB) setClientes(empresasDB);
     setCarregandoClientes(false);
+  }
+
+  async function salvarClienteGlobal() {
+    setSalvando(true);
+    const { error } = await supabase.from('empresas')
+      .update({
+        ativo: clienteForm.ativo,
+        plano_valor: clienteForm.plano_valor,
+        plano_vencimento: clienteForm.plano_vencimento || null
+      })
+      .eq('id', clienteEditando.id);
+    
+    if (!error) {
+      await carregarClientesGlobais();
+      setClienteEditando(null);
+    } else {
+      alert('Erro ao salvar cliente: ' + error.message);
+    }
+    setSalvando(false);
   }
 
   React.useEffect(() => {
@@ -128,24 +149,53 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
 
       {abaAtiva === 'clientes' && sessao?.tipo === 'admin_sistema' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {carregandoClientes ? (
+          {clienteEditando ? (
+            <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{clienteEditando.nome}</div>
+                <button onClick={() => setClienteEditando(null)} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 24, lineHeight: 1 }}>&times;</button>
+              </div>
+
+              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" id="ativo" checked={clienteForm.ativo} onChange={e => setClienteForm({...clienteForm, ativo: e.target.checked})} />
+                <label htmlFor="ativo" style={{ fontSize: 14, color: clienteForm.ativo ? C.green : C.red, fontWeight: 600 }}>
+                  {clienteForm.ativo ? 'Empresa Ativa (Acesso Liberado)' : 'Empresa Bloqueada (Inadimplente)'}
+                </label>
+              </div>
+
+              <FieldLabel>Valor da Assinatura (R$)</FieldLabel>
+              <input type="number" step="0.01" value={clienteForm.plano_valor} onChange={e => setClienteForm({...clienteForm, plano_valor: e.target.value})} style={inputStyle} placeholder="149.90" />
+
+              <FieldLabel>Vencimento do Plano</FieldLabel>
+              <input type="date" value={clienteForm.plano_vencimento || ''} onChange={e => setClienteForm({...clienteForm, plano_vencimento: e.target.value})} style={inputStyle} />
+
+              <Btn onClick={salvarClienteGlobal} disabled={salvando} style={{ width: '100%', marginTop: 20 }}>
+                {salvando ? 'Salvando...' : 'Salvar Alterações'}
+              </Btn>
+            </div>
+          ) : carregandoClientes ? (
             <div style={{ textAlign: 'center', padding: 20, color: C.muted }}>Carregando empresas...</div>
           ) : clientes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 20, color: C.muted }}>Nenhuma empresa cadastrada.</div>
           ) : (
             clientes.map(cli => (
-              <div key={cli.id} style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div key={cli.id} 
+                   onClick={() => { setClienteEditando(cli); setClienteForm({ ativo: cli.ativo ?? true, plano_valor: cli.plano_valor || '', plano_vencimento: cli.plano_vencimento || '' }); }}
+                   style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', border: cli.ativo === false ? '1px solid #fee2e2' : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 44, height: 44, background: C.navy, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 44, height: 44, background: cli.ativo === false ? C.red : C.navy, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Building2 size={20} color="#fff" />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{cli.nome}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: cli.ativo === false ? C.red : C.navy }}>
+                      {cli.nome} {cli.ativo === false && '(Bloqueado)'}
+                    </div>
                     <div style={{ fontSize: 12, color: C.muted }}>CNPJ: {cli.cnpj || 'Não informado'}</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 12, fontSize: 11, color: C.muted }}>
-                  Cadastrado em: {new Date(cli.created_at).toLocaleDateString('pt-BR')}
+                <div style={{ marginTop: 12, fontSize: 11, color: C.muted, display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Cadastrado: {new Date(cli.created_at).toLocaleDateString('pt-BR')}</span>
+                  <span>Assinatura: R$ {Number(cli.plano_valor || 0).toFixed(2)}</span>
                 </div>
               </div>
             ))
