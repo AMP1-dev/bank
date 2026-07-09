@@ -21,6 +21,10 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
   const [carregandoEquipe, setCarregandoEquipe] = useState(false);
 
   async function salvarEmpresa() {
+    if (!empresa?.id) {
+      setMsg('❌ Você não tem uma empresa vinculada ao seu perfil.');
+      return;
+    }
     setSalvando(true); setMsg('');
     const { error } = await supabase.from('empresas')
       .update({ nome: nomeEmpresa, cnpj: cnpj || null })
