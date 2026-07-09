@@ -88,8 +88,6 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
     setTimeout(() => setMsg(''), 3000);
   }
 
-  const isAdmin = sessao?.tipo === 'admin' || sessao?.tipo === 'admin_sistema';
-
   const abas = [];
   if (isAdmin) {
     abas.push({ id: 'empresa', label: 'Empresa',  Icon: Building2 });
