@@ -128,6 +128,7 @@ function CadastroScreen({ onVoltar, onSuccess }) {
 
     } catch (e) {
       console.error(e);
+      alert('ERRO CRÍTICO NO CADASTRO:\n' + (e?.message || e?.toString()));
       setErro(e?.message || (e && e.toString ? e.toString() : 'Erro ao criar conta.'));
     }
     setLoading(false);
