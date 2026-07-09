@@ -111,13 +111,14 @@ function CadastroScreen({ onVoltar, onSuccess }) {
           .eq('id', authData.user.id);
         if (profErr) throw new Error('Erro ao aceitar convite: ' + profErr.message);
       } else {
-        // 2. Criar empresa (se não for convite)
-        const { data: emp, error: empErr } = await supabase.from('empresas')
-          .insert({ nome: empresa, cnpj: cnpj || null }).select().single();
+        // 2. Criar empresa (sem .select() para evitar bloqueio de leitura do RLS)
+        const novaEmpresaId = crypto.randomUUID();
+        const { error: empErr } = await supabase.from('empresas')
+          .insert({ id: novaEmpresaId, nome: empresa, cnpj: cnpj || null });
         if (empErr) throw new Error('Erro ao criar empresa: ' + empErr.message);
 
         // 3. Vincular profile à empresa e setar como admin
-        const { error: profErr } = await supabase.from('profiles').update({ empresa_id: emp.id, nome, tipo: 'admin' })
+        const { error: profErr } = await supabase.from('profiles').update({ empresa_id: novaEmpresaId, nome, tipo: 'admin' })
           .eq('id', authData.user.id);
         if (profErr) throw new Error('Erro ao vincular perfil: ' + profErr.message);
       }
