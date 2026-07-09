@@ -121,6 +121,9 @@ function CadastroScreen({ onVoltar, onSuccess }) {
           .eq('id', authData.user.id);
         if (profErr) throw new Error('Erro ao vincular perfil: ' + profErr.message);
       }
+      
+      // Recarrega a página para garantir que o App puxe o perfil atualizado (admin) e não o operador padrão
+      window.location.reload();
 
     } catch (e) {
       console.error(e);

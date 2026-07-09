@@ -4,7 +4,8 @@ import { supabase } from './supabase.js';
 import { C, Card, Btn, FieldLabel, inputStyle, Alert } from './UIComponents.jsx';
 
 export function AdminScreen({ sessao, empresa, onLogout }) {
-  const [abaAtiva, setAbaAtiva] = useState('empresa');
+  const isAdmin = sessao?.tipo === 'admin' || sessao?.tipo === 'admin_sistema';
+  const [abaAtiva, setAbaAtiva] = useState(isAdmin ? 'empresa' : 'conta');
   const [nomeEmpresa, setNomeEmpresa] = useState(empresa?.nome || '');
   const [cnpj, setCnpj] = useState(empresa?.cnpj || '');
   const [salvando, setSalvando] = useState(false);
