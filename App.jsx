@@ -25,6 +25,7 @@ export default function App() {
       else setCarregando(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
+      if (window.isRegistering) return; // Ignora o evento para não desmontar a tela de cadastro
       if (session) carregarUsuario(session.user.id);
       else { setSessao(null); setEmpresa(null); setCheques([]); setCarregando(false); }
     });

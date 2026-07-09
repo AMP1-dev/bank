@@ -92,6 +92,7 @@ function CadastroScreen({ onVoltar, onSuccess }) {
 
   async function handleCadastro() {
     setErro(''); setLoading(true);
+    window.isRegistering = true; // Impede que o App.jsx desmonte a tela
     try {
       // 1. Criar usuário
       const { data: authData, error: authErr } = await supabase.auth.signUp({
