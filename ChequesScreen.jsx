@@ -9,7 +9,7 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
   
   // Filtros por coluna
   const [filtros, setFiltros] = useState({
-    data_entrada: '', emitente: '', banco: '', numero_cheque: '', valor: '', status: ''
+    data_entrada: '', emitente: '', banco: '', numero_cheque: '', valor: '', status: '', vencimento: ''
   });
 
   const [editandoId, setEditandoId] = useState(null);
@@ -34,7 +34,14 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
     }
 
     // Filtros de Coluna
-    if (filtros.data_entrada) arr = arr.filter(c => c.data_entrada?.includes(filtros.data_entrada));
+    if (filtros.data_entrada) {
+      const q = filtros.data_entrada.toLowerCase();
+      arr = arr.filter(c => formatDate(c.data_entrada).toLowerCase().includes(q));
+    }
+    if (filtros.vencimento) {
+      const q = filtros.vencimento.toLowerCase();
+      arr = arr.filter(c => formatDate(c.vencimento).toLowerCase().includes(q));
+    }
     if (filtros.emitente) {
       const q = filtros.emitente.toLowerCase();
       arr = arr.filter(c => c.emitente?.toLowerCase().includes(q) || c.cpf_cnpj?.includes(q) || c.cliente?.toLowerCase().includes(q));
@@ -140,7 +147,7 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
                   {/* Linha de Filtros por Coluna */}
                   <tr>
                     <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
-                       <input style={filterInputStyle} placeholder="Filtrar..." value={filtros.data_entrada} onChange={e => setFiltros({...filtros, data_entrada: e.target.value})} />
+                       <input style={{...filterInputStyle, width: 85}} placeholder="Data..." value={filtros.data_entrada} onChange={e => setFiltros({...filtros, data_entrada: e.target.value})} />
                     </td>
                     <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
                        <select style={{...filterInputStyle, padding: '4px'}} value={filtros.status} onChange={e => setFiltros({...filtros, status: e.target.value})}>
@@ -164,7 +171,9 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
                     <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
                        <input style={filterInputStyle} placeholder="Filtrar Valor..." value={filtros.valor} onChange={e => setFiltros({...filtros, valor: e.target.value})} />
                     </td>
-                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}></td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <input style={{...filterInputStyle, width: 85}} placeholder="Data..." value={filtros.vencimento} onChange={e => setFiltros({...filtros, vencimento: e.target.value})} />
+                    </td>
                     <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}></td>
                   </tr>
                 </thead>
