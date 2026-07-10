@@ -92,6 +92,21 @@ export default function App() {
     setTela('cheques');
   }
 
+  async function salvarChequeInline(dados) {
+    const anterior = cheques.find(c => c.id === dados.id);
+    // Removemos campos de sistema antes de dar update
+    const updateData = { ...dados };
+    delete updateData._status; // se existir
+    
+    const { error } = await supabase.from('cheques').update(updateData).eq('id', dados.id);
+    if (!error) {
+      await registrarHistorico(dados.id, 'editado', `Cheque editado via Tabela por ${sessao.nome || sessao.email}`, anterior, updateData);
+      await carregarCheques(sessao.empresaId);
+    } else {
+      alert('Erro ao salvar cheque: ' + error.message);
+    }
+  }
+
   async function alterarStatus(chequeId, novoStatus) {
     const cheque = cheques.find(c => c.id === chequeId);
     const update = { status: novoStatus };
@@ -151,6 +166,7 @@ export default function App() {
         <ChequesScreen
           cheques={cheques}
           onEditar={handleEditar}
+          onSalvarInline={salvarChequeInline}
           onAlterarStatus={alterarStatus}
           onExcluir={excluirCheque}
         />
