@@ -75,10 +75,18 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
   }
 
   function salvarEdicao() {
+    const payload = { ...formEdit, id: editandoId };
+    
+    // Tratamento para evitar que string vazia quebre colunas numéricas/datas no banco
+    if (payload.codigo_banco === '') payload.codigo_banco = null;
+    if (payload.valor === '') payload.valor = 0;
+    if (payload.vencimento === '') payload.vencimento = null;
+    if (payload.data_entrada === '') payload.data_entrada = null;
+
     if (onSalvarInline) {
-      onSalvarInline({ id: editandoId, ...formEdit });
+      onSalvarInline(payload);
     } else {
-      onEditar({ id: editandoId, ...formEdit }); // fallback
+      onEditar(payload); // fallback
     }
     setEditandoId(null);
   }
@@ -167,7 +175,7 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
                       <tr key={c.id} style={{ transition: 'background 0.2s', background: isEditing ? '#F8FAFC' : 'transparent', ':hover': { background: isEditing ? '#F8FAFC' : '#F1F5F9' } }}>
                         {isEditing ? (
                           <>
-                            <td style={tdStyle}><input type="date" style={{...inputStyle, minWidth: 110}} value={formEdit.data_entrada} onChange={e => setFormEdit({...formEdit, data_entrada: e.target.value})} /></td>
+                            <td style={tdStyle}><input type="date" style={{...inputStyle, width: 115, padding: '6px 4px'}} value={formEdit.data_entrada} onChange={e => setFormEdit({...formEdit, data_entrada: e.target.value})} /></td>
                             <td style={tdStyle}>
                               <select style={{...inputStyle, padding: '5px'}} value={formEdit.status} onChange={e => setFormEdit({...formEdit, status: e.target.value})}>
                                 <option value="a_vencer">A vencer</option>
@@ -192,7 +200,7 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
                             </td>
                             <td style={tdStyle}><input placeholder="Nº" style={{...inputStyle, width: 80}} value={formEdit.numero_cheque} onChange={e => setFormEdit({...formEdit, numero_cheque: e.target.value})} /></td>
                             <td style={tdStyle}><input type="number" step="0.01" style={{...inputStyle, width: 90}} value={formEdit.valor} onChange={e => setFormEdit({...formEdit, valor: e.target.value})} /></td>
-                            <td style={tdStyle}><input type="date" style={{...inputStyle, minWidth: 110}} value={formEdit.vencimento} onChange={e => setFormEdit({...formEdit, vencimento: e.target.value})} /></td>
+                            <td style={tdStyle}><input type="date" style={{...inputStyle, width: 115, padding: '6px 4px'}} value={formEdit.vencimento} onChange={e => setFormEdit({...formEdit, vencimento: e.target.value})} /></td>
                             <td style={tdStyle}>
                               <div style={{ display: 'flex', gap: 4 }}>
                                 <Btn size="sm" onClick={salvarEdicao} style={{ padding: '6px', minWidth: 0 }} title="Salvar"><Save size={15}/></Btn>
