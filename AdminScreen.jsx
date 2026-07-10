@@ -100,7 +100,7 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
         chequesToInsert.push({
           empresa_id: empresa.id,
           data_entrada: parseDate(dtEntrada),
-          cliente_nome: String(getCol(['Cliente']) || ''),
+          cliente: String(getCol(['Cliente']) || ''),
           codigo_banco: String(getCol(['Banco2', 'Cod']) || ''),
           nome_banco: String(getCol(['Banco Emissor', 'Banco']) || ''),
           agencia: String(getCol(['Ag', 'Agência']) || ''),
