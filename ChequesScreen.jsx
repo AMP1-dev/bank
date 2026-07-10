@@ -11,6 +11,7 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
   const [filtros, setFiltros] = useState({
     data_entrada: '', emitente: '', banco: '', numero_cheque: '', valor: '', status: '', vencimento: ''
   });
+  const [ordenacao, setOrdenacao] = useState({ coluna: 'data_entrada', direcao: 'desc' });
 
   const [editandoId, setEditandoId] = useState(null);
   const [formEdit, setFormEdit] = useState({});
@@ -57,11 +58,32 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
        arr = arr.filter(c => c._status.includes(q));
     }
 
-    // Ordem: data entrada desc
-    arr.sort((a, b) => new Date(b.data_entrada) - new Date(a.data_entrada));
+    // Ordem
+    arr.sort((a, b) => {
+      let valA = a[ordenacao.coluna];
+      let valB = b[ordenacao.coluna];
+      
+      if (ordenacao.coluna === 'valor') {
+         valA = Number(valA) || 0;
+         valB = Number(valB) || 0;
+      } else if (ordenacao.coluna === 'data_entrada' || ordenacao.coluna === 'vencimento') {
+         valA = valA ? new Date(valA).getTime() : 0;
+         valB = valB ? new Date(valB).getTime() : 0;
+      } else if (ordenacao.coluna === 'status') {
+         valA = a._status || '';
+         valB = b._status || '';
+      } else {
+         valA = String(valA || '').toLowerCase();
+         valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return ordenacao.direcao === 'asc' ? -1 : 1;
+      if (valA > valB) return ordenacao.direcao === 'asc' ? 1 : -1;
+      return 0;
+    });
     
     return arr;
-  }, [cheques, buscaGlobal, filtros]);
+  }, [cheques, buscaGlobal, filtros, ordenacao]);
 
   const totalFiltrado = lista.reduce((s, c) => s + Number(c.valor), 0);
 
@@ -98,7 +120,20 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
     setEditandoId(null);
   }
 
+  function alternarOrdem(coluna) {
+    if (ordenacao.coluna === coluna) {
+      setOrdenacao({ coluna, direcao: ordenacao.direcao === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setOrdenacao({ coluna, direcao: 'asc' });
+    }
+  }
+
   const thStyle = { padding: '10px 12px', textAlign: 'left', fontSize: 13, color: C.navy, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
+  const thClickable = { ...thStyle, cursor: 'pointer', userSelect: 'none' };
+  const SortIcon = ({ col }) => {
+    if (ordenacao.coluna !== col) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
+    return <span style={{ marginLeft: 4 }}>{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>;
+  };
   const tdStyle = { padding: '10px 12px', fontSize: 13, borderBottom: `1px solid ${C.border}`, color: C.text, verticalAlign: 'middle', whiteSpace: 'nowrap' };
   const inputStyle = { width: '100%', padding: '6px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none' };
   const filterInputStyle = { width: '100%', padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', background: '#fff' };
@@ -134,14 +169,14 @@ export function ChequesScreen({ cheques, onEditar, onSalvarInline, onAlterarStat
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
                 <thead style={{ background: '#F1F5F9' }}>
                   <tr>
-                    <th style={thStyle}>Data</th>
-                    <th style={thStyle}>Status</th>
-                    <th style={thStyle}>Emitente / Cliente</th>
-                    <th style={thStyle}>Banco</th>
+                    <th style={thClickable} onClick={() => alternarOrdem('data_entrada')}>Data <SortIcon col="data_entrada"/></th>
+                    <th style={thClickable} onClick={() => alternarOrdem('status')}>Status <SortIcon col="status"/></th>
+                    <th style={thClickable} onClick={() => alternarOrdem('emitente')}>Emitente / Cliente <SortIcon col="emitente"/></th>
+                    <th style={thClickable} onClick={() => alternarOrdem('nome_banco')}>Banco <SortIcon col="nome_banco"/></th>
                     <th style={thStyle}>Ag / Conta</th>
-                    <th style={thStyle}>Nº Cheque</th>
-                    <th style={thStyle}>Valor</th>
-                    <th style={thStyle}>Vencimento</th>
+                    <th style={thClickable} onClick={() => alternarOrdem('numero_cheque')}>Nº Cheque <SortIcon col="numero_cheque"/></th>
+                    <th style={thClickable} onClick={() => alternarOrdem('valor')}>Valor <SortIcon col="valor"/></th>
+                    <th style={thClickable} onClick={() => alternarOrdem('vencimento')}>Vencimento <SortIcon col="vencimento"/></th>
                     <th style={thStyle}>Ações</th>
                   </tr>
                   {/* Linha de Filtros por Coluna */}
