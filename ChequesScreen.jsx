@@ -1,189 +1,244 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, ChevronRight, Check, RotateCcw, Trash2 } from 'lucide-react';
-import { C, StatusBadge, EmptyState, Modal, Btn, FieldLabel, selectStyle, Alert } from './UIComponents.jsx';
+import { Search, Edit2, Check, Trash2, X, Save, RotateCcw } from 'lucide-react';
+import { C, StatusBadge, EmptyState, Modal, Btn, Alert } from './UIComponents.jsx';
 import { calcularStatus } from './constants.js';
 import { formatBRL, formatDate, formatCPFCNPJ } from './formatters.js';
 
 export function ChequesScreen({ cheques, onEditar, onAlterarStatus, onExcluir }) {
-  const [busca, setBusca]             = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [filtroOrdem, setFiltroOrdem] = useState('data_desc');
-  const [showFiltros, setShowFiltros] = useState(false);
-  const [chequeDetalhe, setChequeDetalhe] = useState(null);
+  const [buscaGlobal, setBuscaGlobal] = useState('');
+  
+  // Filtros por coluna
+  const [filtros, setFiltros] = useState({
+    data_entrada: '', emitente: '', banco: '', numero_cheque: '', valor: '', status: ''
+  });
+
+  const [editandoId, setEditandoId] = useState(null);
+  const [formEdit, setFormEdit] = useState({});
   const [confirmExcluir, setConfirmExcluir] = useState(null);
 
   const lista = useMemo(() => {
     let arr = cheques.map(c => ({ ...c, _status: calcularStatus(c) }));
 
-    // Busca
-    if (busca.trim()) {
-      const q = busca.toLowerCase();
-      arr = arr.filter(c =>
-        c.emitente?.toLowerCase().includes(q) ||
-        c.cliente?.toLowerCase().includes(q) ||
-        c.numero_cheque?.includes(q) ||
-        c.cpf_cnpj?.replace(/\D/g,'').includes(q.replace(/\D/g,'')) ||
-        c.nome_banco?.toLowerCase().includes(q) ||
-        c.destino?.toLowerCase().includes(q)
-      );
+    // Busca Global
+    if (buscaGlobal.trim()) {
+      const q = buscaGlobal.toLowerCase();
+      const words = q.split(' ').filter(Boolean);
+      arr = arr.filter(c => {
+        const searchableText = [
+          c.emitente, c.cliente, c.numero_cheque, c.cpf_cnpj?.replace(/\D/g,''),
+          c.nome_banco, c.codigo_banco, c.destino, c.valor, c._status
+        ].join(' ').toLowerCase();
+        
+        return words.every(w => searchableText.includes(w));
+      });
     }
 
-    // Filtro status
-    if (filtroStatus !== 'todos') arr = arr.filter(c => c._status === filtroStatus);
+    // Filtros de Coluna
+    if (filtros.data_entrada) arr = arr.filter(c => c.data_entrada?.includes(filtros.data_entrada));
+    if (filtros.emitente) {
+      const q = filtros.emitente.toLowerCase();
+      arr = arr.filter(c => c.emitente?.toLowerCase().includes(q) || c.cpf_cnpj?.includes(q) || c.cliente?.toLowerCase().includes(q));
+    }
+    if (filtros.banco) {
+      const q = filtros.banco.toLowerCase();
+      arr = arr.filter(c => c.nome_banco?.toLowerCase().includes(q) || String(c.codigo_banco).includes(q));
+    }
+    if (filtros.numero_cheque) arr = arr.filter(c => c.numero_cheque?.includes(filtros.numero_cheque));
+    if (filtros.valor) arr = arr.filter(c => String(c.valor).includes(filtros.valor));
+    if (filtros.status) {
+       const q = filtros.status.toLowerCase();
+       arr = arr.filter(c => c._status.includes(q));
+    }
 
-    // Ordem
-    arr.sort((a, b) => {
-      if (filtroOrdem === 'data_desc')   return new Date(b.data_entrada) - new Date(a.data_entrada);
-      if (filtroOrdem === 'data_asc')    return new Date(a.data_entrada) - new Date(b.data_entrada);
-      if (filtroOrdem === 'valor_desc')  return Number(b.valor) - Number(a.valor);
-      if (filtroOrdem === 'valor_asc')   return Number(a.valor) - Number(b.valor);
-      if (filtroOrdem === 'venc_asc')    return new Date(a.vencimento||'9999') - new Date(b.vencimento||'9999');
-      return 0;
-    });
+    // Ordem: data entrada desc
+    arr.sort((a, b) => new Date(b.data_entrada) - new Date(a.data_entrada));
+    
     return arr;
-  }, [cheques, busca, filtroStatus, filtroOrdem]);
+  }, [cheques, buscaGlobal, filtros]);
 
   const totalFiltrado = lista.reduce((s, c) => s + Number(c.valor), 0);
 
+  function iniciarEdicao(c) {
+    setEditandoId(c.id);
+    setFormEdit({
+      data_entrada: c.data_entrada || '',
+      emitente: c.emitente || '',
+      codigo_banco: c.codigo_banco || '',
+      nome_banco: c.nome_banco || '',
+      agencia: c.agencia || '',
+      conta: c.conta || '',
+      numero_cheque: c.numero_cheque || '',
+      valor: c.valor || '',
+      vencimento: c.vencimento || '',
+      status: c.status || 'a_vencer'
+    });
+  }
+
+  function salvarEdicao() {
+    onEditar({ id: editandoId, ...formEdit });
+    setEditandoId(null);
+  }
+
+  const thStyle = { padding: '10px 12px', textAlign: 'left', fontSize: 13, color: C.navy, fontWeight: 700, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
+  const tdStyle = { padding: '10px 12px', fontSize: 13, borderBottom: `1px solid ${C.border}`, color: C.text, verticalAlign: 'middle', whiteSpace: 'nowrap' };
+  const inputStyle = { width: '100%', padding: '6px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none' };
+  const filterInputStyle = { width: '100%', padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', background: '#fff' };
+
   return (
-    <div style={{ paddingBottom: 100 }}>
-      {/* Header fixo */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#fff', borderBottom: `1px solid ${C.border}`, padding: '12px 16px' }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <Search size={15} color={C.light} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+    <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
+      {/* Header Fixo: Busca Global */}
+      <div style={{ background: '#fff', borderBottom: `1px solid ${C.border}`, padding: '12px 16px', zIndex: 20 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <div style={{ flex: 1, position: 'relative', maxWidth: 600 }}>
+            <Search size={16} color={C.light} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
             <input
-              value={busca} onChange={e => setBusca(e.target.value)}
-              placeholder="Buscar emitente, cheque, CPF..."
-              style={{ width: '100%', padding: '9px 12px 9px 32px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none' }}
+              value={buscaGlobal} onChange={e => setBuscaGlobal(e.target.value)}
+              placeholder="Busca global inteligente (Ex: Itau 1500 João)"
+              style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: 10, border: `2px solid ${C.tealLt}`, fontSize: 14, outline: 'none', background: '#fff' }}
             />
           </div>
-          <button onClick={() => setShowFiltros(true)} style={{ background: showFiltros || filtroStatus !== 'todos' ? C.navy : '#F1F5F9', border: 'none', borderRadius: 10, padding: '0 12px', cursor: 'pointer', color: filtroStatus !== 'todos' ? '#fff' : C.muted }}>
-            <Filter size={16} />
-          </button>
+          {lista.length > 0 && (
+            <div style={{ fontSize: 13, color: C.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>
+              Exibindo <strong style={{ color: C.navy }}>{lista.length}</strong> {lista.length !== 1 ? 'cheques' : 'cheque'} · Total: <strong style={{ color: C.navy, fontSize: 15 }}>{formatBRL(totalFiltrado)}</strong>
+            </div>
+          )}
         </div>
-        {lista.length > 0 && (
-          <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>
-            {lista.length} cheque{lista.length !== 1 ? 's' : ''} · Total: <strong style={{ color: C.navy }}>{formatBRL(totalFiltrado)}</strong>
-          </div>
-        )}
       </div>
 
-      {/* Lista */}
-      <div style={{ padding: '12px 16px 0' }}>
-        {lista.length === 0 && (
-          <EmptyState icon="🔍" text={busca ? `Nenhum resultado para "${busca}"` : 'Nenhum cheque encontrado.'} />
-        )}
-
-        {lista.map(c => (
-          <button key={c.id} onClick={() => setChequeDetalhe(c)}
-            style={{ width: '100%', background: '#fff', borderRadius: 14, padding: '14px', border: `1px solid ${C.border}`, marginBottom: 8, textAlign: 'left', cursor: 'pointer', display: 'block' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.emitente}</div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
-                  {c.nome_banco || `Banco ${c.codigo_banco || '—'}`} · Ag {c.agencia || '—'} · Cc {c.conta || '—'} · Nº {c.numero_cheque}
-                </div>
-              </div>
-              <ChevronRight size={14} color={C.light} style={{ flexShrink: 0, marginLeft: 6, marginTop: 2 }} />
+      {/* Container da Tabela (com rolagem) */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+        <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+          {lista.length === 0 ? (
+             <div style={{ padding: 60 }}><EmptyState icon="🔍" text={buscaGlobal ? `Nenhum resultado para a busca.` : 'Nenhum cheque encontrado.'} /></div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
+                <thead style={{ background: '#F1F5F9' }}>
+                  <tr>
+                    <th style={thStyle}>Data</th>
+                    <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Emitente / Cliente</th>
+                    <th style={thStyle}>Banco</th>
+                    <th style={thStyle}>Ag / Conta</th>
+                    <th style={thStyle}>Nº Cheque</th>
+                    <th style={thStyle}>Valor</th>
+                    <th style={thStyle}>Vencimento</th>
+                    <th style={thStyle}>Ações</th>
+                  </tr>
+                  {/* Linha de Filtros por Coluna */}
+                  <tr>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <input style={filterInputStyle} placeholder="Filtrar..." value={filtros.data_entrada} onChange={e => setFiltros({...filtros, data_entrada: e.target.value})} />
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <select style={{...filterInputStyle, padding: '4px'}} value={filtros.status} onChange={e => setFiltros({...filtros, status: e.target.value})}>
+                         <option value="">Todos</option>
+                         <option value="a_vencer">A vencer</option>
+                         <option value="vencido">Vencido</option>
+                         <option value="compensado">Compensado</option>
+                         <option value="devolvido">Devolvido</option>
+                       </select>
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <input style={filterInputStyle} placeholder="Filtrar Nome/CPF..." value={filtros.emitente} onChange={e => setFiltros({...filtros, emitente: e.target.value})} />
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <input style={filterInputStyle} placeholder="Filtrar Banco..." value={filtros.banco} onChange={e => setFiltros({...filtros, banco: e.target.value})} />
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}></td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <input style={filterInputStyle} placeholder="Filtrar Nº..." value={filtros.numero_cheque} onChange={e => setFiltros({...filtros, numero_cheque: e.target.value})} />
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}>
+                       <input style={filterInputStyle} placeholder="Filtrar Valor..." value={filtros.valor} onChange={e => setFiltros({...filtros, valor: e.target.value})} />
+                    </td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}></td>
+                    <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, background: '#E2E8F0' }}></td>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lista.map(c => {
+                    const isEditing = editandoId === c.id;
+                    return (
+                      <tr key={c.id} style={{ transition: 'background 0.2s', background: isEditing ? '#F8FAFC' : 'transparent', ':hover': { background: isEditing ? '#F8FAFC' : '#F1F5F9' } }}>
+                        {isEditing ? (
+                          <>
+                            <td style={tdStyle}><input type="date" style={inputStyle} value={formEdit.data_entrada} onChange={e => setFormEdit({...formEdit, data_entrada: e.target.value})} /></td>
+                            <td style={tdStyle}>
+                              <select style={{...inputStyle, padding: '5px'}} value={formEdit.status} onChange={e => setFormEdit({...formEdit, status: e.target.value})}>
+                                <option value="a_vencer">A vencer</option>
+                                <option value="compensado">Compensado</option>
+                                <option value="devolvido">Devolvido</option>
+                              </select>
+                            </td>
+                            <td style={tdStyle}>
+                              <input placeholder="Emitente" style={{...inputStyle, minWidth: 150}} value={formEdit.emitente} onChange={e => setFormEdit({...formEdit, emitente: e.target.value})} />
+                            </td>
+                            <td style={tdStyle}>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <input placeholder="Cód" style={{...inputStyle, width: 45}} value={formEdit.codigo_banco} onChange={e => setFormEdit({...formEdit, codigo_banco: e.target.value})} />
+                                <input placeholder="Nome" style={{...inputStyle, minWidth: 80}} value={formEdit.nome_banco} onChange={e => setFormEdit({...formEdit, nome_banco: e.target.value})} />
+                              </div>
+                            </td>
+                            <td style={tdStyle}>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <input placeholder="Ag" style={{...inputStyle, width: 50}} value={formEdit.agencia} onChange={e => setFormEdit({...formEdit, agencia: e.target.value})} />
+                                <input placeholder="Cc" style={{...inputStyle, width: 70}} value={formEdit.conta} onChange={e => setFormEdit({...formEdit, conta: e.target.value})} />
+                              </div>
+                            </td>
+                            <td style={tdStyle}><input placeholder="Nº" style={{...inputStyle, width: 80}} value={formEdit.numero_cheque} onChange={e => setFormEdit({...formEdit, numero_cheque: e.target.value})} /></td>
+                            <td style={tdStyle}><input type="number" step="0.01" style={{...inputStyle, width: 90}} value={formEdit.valor} onChange={e => setFormEdit({...formEdit, valor: e.target.value})} /></td>
+                            <td style={tdStyle}><input type="date" style={inputStyle} value={formEdit.vencimento} onChange={e => setFormEdit({...formEdit, vencimento: e.target.value})} /></td>
+                            <td style={tdStyle}>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <Btn size="sm" onClick={salvarEdicao} style={{ padding: '6px', minWidth: 0 }} title="Salvar"><Save size={15}/></Btn>
+                                <Btn size="sm" variant="outline" onClick={() => setEditandoId(null)} style={{ padding: '6px', minWidth: 0 }} title="Cancelar"><X size={15}/></Btn>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td style={tdStyle}>{formatDate(c.data_entrada)}</td>
+                            <td style={tdStyle}><StatusBadge status={c._status} /></td>
+                            <td style={tdStyle}>
+                              <div style={{ fontWeight: 600, color: C.navy }}>{c.emitente}</div>
+                              {c.cpf_cnpj && <div style={{ fontSize: 11, color: C.muted }}>{formatCPFCNPJ(c.cpf_cnpj)}</div>}
+                              {c.cliente && <div style={{ fontSize: 11, color: C.teal }}>👤 {c.cliente}</div>}
+                            </td>
+                            <td style={tdStyle}>
+                              <div style={{ fontWeight: 500 }}>{c.nome_banco || '—'}</div>
+                              {c.codigo_banco && <div style={{ fontSize: 11, color: C.muted }}>Cód: {c.codigo_banco}</div>}
+                            </td>
+                            <td style={tdStyle}>
+                              <div><span style={{color: C.muted, fontSize: 11}}>Ag:</span> {c.agencia || '—'}</div>
+                              <div><span style={{color: C.muted, fontSize: 11}}>Cc:</span> {c.conta || '—'}</div>
+                            </td>
+                            <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 14 }}>{c.numero_cheque}</td>
+                            <td style={{ ...tdStyle, fontWeight: 800, color: C.navy, fontSize: 14 }}>{formatBRL(c.valor)}</td>
+                            <td style={tdStyle}>{formatDate(c.vencimento) || '—'}</td>
+                            <td style={tdStyle}>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                {c.status !== 'compensado' && (
+                                   <button onClick={() => onAlterarStatus(c.id, 'compensado')} title="Marcar como Compensado" style={{ background: C.greenLt, border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', color: C.green, display: 'flex' }}><Check size={14}/></button>
+                                )}
+                                {c.status === 'compensado' && (
+                                   <button onClick={() => onAlterarStatus(c.id, 'a_vencer')} title="Reabrir (Desfazer)" style={{ background: '#F1F5F9', border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', color: C.muted, display: 'flex' }}><RotateCcw size={14}/></button>
+                                )}
+                                <button onClick={() => iniciarEdicao(c)} title="Editar Linha" style={{ background: '#F1F5F9', border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', color: C.navy, display: 'flex' }}><Edit2 size={14}/></button>
+                                <button onClick={() => setConfirmExcluir(c.id)} title="Excluir" style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: 6, cursor: 'pointer', color: C.red, display: 'flex' }}><Trash2 size={14}/></button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <StatusBadge status={c._status} />
-                {c.vencimento && <span style={{ fontSize: 11, color: C.muted }}>Venc. {formatDate(c.vencimento)}</span>}
-              </div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{formatBRL(c.valor)}</span>
-            </div>
-          </button>
-        ))}
+          )}
+        </div>
       </div>
-
-      {/* Modal filtros */}
-      {showFiltros && (
-        <Modal titulo="Filtros" onClose={() => setShowFiltros(false)}>
-          <FieldLabel>Status</FieldLabel>
-          <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={selectStyle}>
-            <option value="todos">Todos</option>
-            <option value="a_vencer">A vencer</option>
-            <option value="alerta">Vencendo em breve</option>
-            <option value="vencido">Vencidos</option>
-            <option value="compensado">Compensados</option>
-            <option value="devolvido">Devolvidos</option>
-          </select>
-          <FieldLabel>Ordenar por</FieldLabel>
-          <select value={filtroOrdem} onChange={e => setFiltroOrdem(e.target.value)} style={selectStyle}>
-            <option value="data_desc">Data entrada (recente primeiro)</option>
-            <option value="data_asc">Data entrada (antiga primeiro)</option>
-            <option value="valor_desc">Maior valor</option>
-            <option value="valor_asc">Menor valor</option>
-            <option value="venc_asc">Vencimento próximo</option>
-          </select>
-          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-            <Btn variant="outline" onClick={() => { setFiltroStatus('todos'); setFiltroOrdem('data_desc'); }} style={{ flex: 1 }}>Limpar</Btn>
-            <Btn onClick={() => setShowFiltros(false)} style={{ flex: 1 }}>Aplicar</Btn>
-          </div>
-        </Modal>
-      )}
-
-      {/* Modal detalhe */}
-      {chequeDetalhe && (
-        <Modal titulo="Detalhe do Cheque" onClose={() => setChequeDetalhe(null)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <StatusBadge status={calcularStatus(chequeDetalhe)} />
-            <span style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>{formatBRL(chequeDetalhe.valor)}</span>
-          </div>
-
-          {[
-            ['Emitente', chequeDetalhe.emitente],
-            ['CPF/CNPJ', formatCPFCNPJ(chequeDetalhe.cpf_cnpj)],
-            ['Telefone', chequeDetalhe.telefone],
-            ['Observação', chequeDetalhe.email_obs],
-            ['Banco', chequeDetalhe.nome_banco || `Banco ${chequeDetalhe.codigo_banco}`],
-            ['Agência', chequeDetalhe.agencia],
-            ['Conta', chequeDetalhe.conta],
-            ['Nº Cheque', chequeDetalhe.numero_cheque],
-            ['Cliente', chequeDetalhe.cliente],
-            ['Destino', chequeDetalhe.destino],
-            ['Data entrada', formatDate(chequeDetalhe.data_entrada)],
-            ['Vencimento', formatDate(chequeDetalhe.vencimento)],
-            ['Compensação', formatDate(chequeDetalhe.compensacao)],
-          ].filter(([, v]) => v && v !== '—').map(([label, valor]) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: `1px solid ${C.border}` }}>
-              <span style={{ fontSize: 12.5, color: C.muted }}>{label}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.text, maxWidth: '60%', textAlign: 'right' }}>{valor}</span>
-            </div>
-          ))}
-
-          {/* Ações rápidas de status */}
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 8 }}>AÇÕES RÁPIDAS</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {chequeDetalhe.status !== 'compensado' && (
-                <Btn size="sm" variant="teal" onClick={() => { onAlterarStatus(chequeDetalhe.id, 'compensado'); setChequeDetalhe(null); }}>
-                  <Check size={13} /> Compensado
-                </Btn>
-              )}
-              {chequeDetalhe.status !== 'devolvido' && (
-                <Btn size="sm" variant="outline" style={{ color: C.purple, borderColor: C.purple }} onClick={() => { onAlterarStatus(chequeDetalhe.id, 'devolvido'); setChequeDetalhe(null); }}>
-                  Devolvido
-                </Btn>
-              )}
-              {(chequeDetalhe.status === 'compensado' || chequeDetalhe.status === 'devolvido') && (
-                <Btn size="sm" variant="outline" onClick={() => { onAlterarStatus(chequeDetalhe.id, 'a_vencer'); setChequeDetalhe(null); }}>
-                  <RotateCcw size={13} /> Reabrir
-                </Btn>
-              )}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-            <Btn variant="outline" onClick={() => { onEditar(chequeDetalhe); setChequeDetalhe(null); }} style={{ flex: 1 }}>Editar</Btn>
-            <Btn variant="danger" size="sm" onClick={() => { setConfirmExcluir(chequeDetalhe.id); setChequeDetalhe(null); }} style={{ flexShrink: 0 }}>
-              <Trash2 size={14} />
-            </Btn>
-          </div>
-        </Modal>
-      )}
 
       {/* Modal confirmação exclusão */}
       {confirmExcluir && (
