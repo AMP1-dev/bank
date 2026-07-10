@@ -9,6 +9,7 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
   const [nomeEmpresa, setNomeEmpresa] = useState(empresa?.nome || '');
   const [cnpj, setCnpj] = useState(empresa?.cnpj || '');
   const [salvando, setSalvando] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [msg, setMsg] = useState('');
   
   // Estados para a aba Global (admin_sistema)
@@ -32,6 +33,104 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
       .eq('id', empresa.id);
     setMsg(error ? '❌ Erro ao salvar.' : '✅ Dados atualizados!');
     setSalvando(false);
+  }
+
+  async function handleImportarPlanilha(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportando(true); setMsg('Lendo arquivo Excel...');
+    try {
+      const xlsx = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = xlsx.read(data);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+      
+      let headerRowIdx = -1;
+      let headers = [];
+      for (let i = 0; i < Math.min(rawRows.length, 20); i++) {
+        if (rawRows[i] && rawRows[i].some(c => c && String(c).includes('Data Entrada'))) {
+          headerRowIdx = i;
+          headers = rawRows[i];
+          break;
+        }
+      }
+      
+      if (headerRowIdx === -1) throw new Error('Não encontrei a coluna "Data Entrada" nas primeiras 20 linhas.');
+      
+      const chequesToInsert = [];
+      for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length === 0) continue;
+        
+        const getCol = (possibles) => {
+          for (const p of possibles) {
+            const idx = headers.findIndex(h => h && String(h).trim().toLowerCase() === p.toLowerCase());
+            if (idx !== -1) return row[idx];
+          }
+          for (const p of possibles) {
+            const idx = headers.findIndex(h => h && String(h).toLowerCase().includes(p.toLowerCase()));
+            if (idx !== -1) return row[idx];
+          }
+          return null;
+        };
+
+        const dtEntrada = getCol(['Data Entrada']);
+        if (!dtEntrada) continue;
+
+        const parseDate = (val) => {
+          if (!val) return null;
+          if (typeof val === 'number') {
+            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+            return date.toISOString().split('T')[0];
+          }
+          const str = String(val);
+          if (str.includes('/')) {
+            const parts = str.split(' ')[0].split('/');
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+          return null;
+        };
+
+        const obs = String(getCol(['Observa', 'Observação']) || '').toUpperCase();
+        let status = 'a_vencer';
+        if (obs === 'COMPENSADO' || getCol(['Compensa'])) status = 'compensado';
+        else if (obs === 'ZEBRA' || obs.includes('DEVOLVIDO')) status = 'devolvido';
+
+        chequesToInsert.push({
+          empresa_id: empresa.id,
+          data_entrada: parseDate(dtEntrada),
+          cliente_nome: String(getCol(['Cliente']) || ''),
+          codigo_banco: String(getCol(['Banco2', 'Cod']) || ''),
+          nome_banco: String(getCol(['Banco Emissor', 'Banco']) || ''),
+          agencia: String(getCol(['Ag', 'Agência']) || ''),
+          conta: String(getCol(['Conta']) || ''),
+          numero_cheque: String(getCol(['Cheque', 'Nº Cheque']) || ''),
+          emitente: String(getCol(['Emitente']) || ''),
+          cpf_cnpj: String(getCol(['CNPJ', 'CPF']) || ''),
+          valor: Number(getCol(['Valor'])) || 0,
+          vencimento: parseDate(getCol(['Vencimento'])),
+          compensacao: parseDate(getCol(['Compensa'])),
+          status: status
+        });
+      }
+
+      if (chequesToInsert.length === 0) throw new Error('Nenhum cheque válido encontrado na planilha.');
+
+      setMsg(`Enviando ${chequesToInsert.length} cheques para o banco de dados...`);
+      let inseridos = 0;
+      for (let i = 0; i < chequesToInsert.length; i += 100) {
+        const lote = chequesToInsert.slice(i, i + 100);
+        const { error } = await supabase.from('cheques').insert(lote);
+        if (error) throw new Error('Erro ao inserir lote: ' + error.message);
+        inseridos += lote.length;
+      }
+      setMsg(`✅ Importação concluída! ${inseridos} cheques importados com sucesso.`);
+    } catch (err) {
+      setMsg('❌ Erro na importação: ' + err.message);
+    }
+    setImportando(false);
+    e.target.value = '';
   }
 
   async function alterarSenha() {
@@ -143,6 +242,19 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
           <Btn onClick={salvarEmpresa} disabled={salvando} style={{ width: '100%', marginTop: 16 }}>
             {salvando ? 'Salvando...' : 'Salvar dados da empresa'}
           </Btn>
+
+          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Importar Dados</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              Selecione uma planilha do Excel (.xlsx) contendo seus cheques antigos para importá-los automaticamente.
+            </div>
+            <label style={{ display: 'block' }}>
+              <div style={{ padding: '12px 16px', background: C.tealLt, color: C.teal, fontWeight: 700, borderRadius: 12, textAlign: 'center', cursor: importando ? 'not-allowed' : 'pointer' }}>
+                {importando ? 'Processando arquivo...' : 'Selecionar Arquivo .xlsx'}
+              </div>
+              <input type="file" accept=".xlsx, .xls" onChange={handleImportarPlanilha} disabled={importando} style={{ display: 'none' }} />
+            </label>
+          </div>
         </div>
       )}
 
