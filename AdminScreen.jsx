@@ -78,6 +78,8 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
         const dtEntrada = getCol(['Data Entrada']);
         if (!dtEntrada) continue;
 
+        const codBanco = String(getCol(['Banco2', 'Cod']) || '').trim();
+
         const parseDate = (val) => {
           if (!val) return null;
           if (typeof val === 'number') {
@@ -101,7 +103,7 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
           empresa_id: empresa.id,
           data_entrada: parseDate(dtEntrada),
           cliente: String(getCol(['Cliente']) || ''),
-          codigo_banco: String(getCol(['Banco2', 'Cod']) || ''),
+          codigo_banco: codBanco ? parseInt(codBanco, 10) || null : null,
           nome_banco: String(getCol(['Banco Emissor', 'Banco']) || ''),
           agencia: String(getCol(['Ag', 'Agência']) || ''),
           conta: String(getCol(['Conta']) || ''),
