@@ -86,7 +86,10 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
             return date.toISOString().split('T')[0];
           }
-          const str = String(val);
+          const str = String(val).trim();
+          if (str.includes('-') && str.split('-').length >= 3) {
+            return str.split('T')[0].slice(0, 10);
+          }
           if (str.includes('/')) {
             const parts = str.split(' ')[0].split('/');
             if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -94,22 +97,31 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
           return null;
         };
 
+        const parsedDataEntrada = parseDate(dtEntrada);
+        if (!parsedDataEntrada) continue; // Obrigatório no banco
+
         const obs = String(getCol(['Observa', 'Observação']) || '').toUpperCase();
         let status = 'a_vencer';
         if (obs === 'COMPENSADO' || getCol(['Compensa'])) status = 'compensado';
         else if (obs === 'ZEBRA' || obs.includes('DEVOLVIDO')) status = 'devolvido';
+        
+        let numCheque = String(getCol(['Cheque', 'Nº Cheque']) || '').trim();
+        if (!numCheque) numCheque = 'S/N'; // Obrigatório no banco
+
+        let nomeEmitente = String(getCol(['Emitente']) || '').trim();
+        if (!nomeEmitente) nomeEmitente = 'Não Informado'; // Obrigatório no banco
 
         chequesToInsert.push({
           empresa_id: empresa.id,
-          data_entrada: parseDate(dtEntrada),
-          cliente: String(getCol(['Cliente']) || ''),
+          data_entrada: parsedDataEntrada,
+          cliente: String(getCol(['Cliente']) || '').trim(),
           codigo_banco: codBanco ? parseInt(codBanco, 10) || null : null,
-          nome_banco: String(getCol(['Banco Emissor', 'Banco']) || ''),
-          agencia: String(getCol(['Ag', 'Agência']) || ''),
-          conta: String(getCol(['Conta']) || ''),
-          numero_cheque: String(getCol(['Cheque', 'Nº Cheque']) || ''),
-          emitente: String(getCol(['Emitente']) || ''),
-          cpf_cnpj: String(getCol(['CNPJ', 'CPF']) || ''),
+          nome_banco: String(getCol(['Banco Emissor', 'Banco']) || '').trim(),
+          agencia: String(getCol(['Ag', 'Agência']) || '').trim(),
+          conta: String(getCol(['Conta']) || '').trim(),
+          numero_cheque: numCheque,
+          emitente: nomeEmitente,
+          cpf_cnpj: String(getCol(['CNPJ', 'CPF']) || '').trim(),
           valor: Number(getCol(['Valor'])) || 0,
           vencimento: parseDate(getCol(['Vencimento'])),
           compensacao: parseDate(getCol(['Compensa'])),
