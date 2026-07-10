@@ -106,7 +106,7 @@ export function ChequesScreen({ cheques, onEditar, onAlterarStatus, onExcluir })
       </div>
 
       {/* Container da Tabela (com rolagem) */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '16px 16px 100px 16px' }}>
         <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
           {lista.length === 0 ? (
              <div style={{ padding: 60 }}><EmptyState icon="🔍" text={buscaGlobal ? `Nenhum resultado para a busca.` : 'Nenhum cheque encontrado.'} /></div>

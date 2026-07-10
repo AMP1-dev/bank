@@ -141,7 +141,7 @@ export default function App() {
   if (!sessao) return <LoginScreen />;
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', background: '#F0F4F8', position: 'relative' }}>
+    <div style={{ maxWidth: tela === 'cheques' ? '100%' : 480, margin: '0 auto', minHeight: '100vh', background: '#F0F4F8', position: 'relative', overflowX: 'hidden' }}>
 
       {tela === 'dashboard' && (
         <DashboardScreen cheques={cheques} onNavigate={handleNavegar} />
