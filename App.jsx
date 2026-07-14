@@ -78,6 +78,10 @@ export default function App() {
       if (!error) {
         await registrarHistorico(chequeEditando.id, 'editado', `Cheque editado por ${sessao.nome || sessao.email}`, anterior, dados);
         await carregarCheques(sessao.empresaId);
+        setChequeEditando(null);
+        setTela('cheques');
+      } else {
+        alert('Erro ao salvar alterações: ' + error.message);
       }
     } else {
       // Criação
@@ -86,10 +90,12 @@ export default function App() {
       if (!error && data) {
         await registrarHistorico(data.id, 'criado', `Cheque nº ${dados.numero_cheque} lançado — ${dados.emitente}`, null, dados);
         await carregarCheques(sessao.empresaId);
+        setChequeEditando(null);
+        setTela('cheques');
+      } else {
+        alert('Erro ao registrar lançamento: ' + (error?.message || 'Falha desconhecida.'));
       }
     }
-    setChequeEditando(null);
-    setTela('cheques');
   }
 
   async function salvarChequeInline(dados) {
