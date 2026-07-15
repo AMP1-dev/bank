@@ -40,7 +40,6 @@ export function DashboardScreen({ cheques, onNavigate }) {
   [cheques]);
 
   return (
-  return (
     <div className="content-max">
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
