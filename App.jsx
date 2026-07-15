@@ -162,38 +162,39 @@ export default function App() {
   if (!sessao) return <LoginScreen />;
 
   return (
-    <div style={{ maxWidth: tela === 'cheques' ? '100%' : 480, margin: '0 auto', minHeight: '100vh', background: '#F0F4F8', position: 'relative', overflowX: 'hidden' }}>
+    <div className="app-layout">
+      <div className="main-content">
+        {tela === 'dashboard' && (
+          <DashboardScreen cheques={cheques} onNavigate={handleNavegar} />
+        )}
 
-      {tela === 'dashboard' && (
-        <DashboardScreen cheques={cheques} onNavigate={handleNavegar} />
-      )}
+        {tela === 'cheques' && (
+          <ChequesScreen
+            cheques={cheques}
+            onEditar={handleEditar}
+            onSalvarInline={salvarChequeInline}
+            onAlterarStatus={alterarStatus}
+            onExcluir={excluirCheque}
+          />
+        )}
 
-      {tela === 'cheques' && (
-        <ChequesScreen
-          cheques={cheques}
-          onEditar={handleEditar}
-          onSalvarInline={salvarChequeInline}
-          onAlterarStatus={alterarStatus}
-          onExcluir={excluirCheque}
-        />
-      )}
+        {tela === 'novo' && (
+          <ChequeFormScreen
+            cheque={chequeEditando}
+            onSalvar={salvarCheque}
+            onVoltar={() => setTela(chequeEditando ? 'cheques' : 'dashboard')}
+            nomeUsuario={sessao.nome}
+          />
+        )}
 
-      {tela === 'novo' && (
-        <ChequeFormScreen
-          cheque={chequeEditando}
-          onSalvar={salvarCheque}
-          onVoltar={() => setTela(chequeEditando ? 'cheques' : 'dashboard')}
-          nomeUsuario={sessao.nome}
-        />
-      )}
+        {tela === 'historico' && (
+          <HistoricoScreen empresaId={sessao.empresaId} />
+        )}
 
-      {tela === 'historico' && (
-        <HistoricoScreen empresaId={sessao.empresaId} />
-      )}
-
-      {tela === 'admin' && (
-        <AdminScreen sessao={sessao} empresa={empresa} onLogout={handleLogout} />
-      )}
+        {tela === 'admin' && (
+          <AdminScreen sessao={sessao} empresa={empresa} onLogout={handleLogout} />
+        )}
+      </div>
 
       {tela !== 'novo' && (
         <BottomNav tela={tela} onNavigate={handleNavegar} />

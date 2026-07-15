@@ -213,7 +213,7 @@ export function AdminScreen({ sessao, empresa, onLogout }) {
   }
 
   return (
-    <div style={{ padding: '16px 16px 100px' }}>
+    <div className="content-max">
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>Configurações</div>
         <div style={{ fontSize: 13, color: C.muted }}>Gerencie sua empresa e conta</div>
